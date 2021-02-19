@@ -110,3 +110,9 @@ class S(nn.Module):
         out = mid.view((mid.size()[0], -1))  # N x (ch x 24)
 
         return out
+
+    def forward_audfeat(self, x):
+
+        mid = self.netcnnaud(x)  # N x ch x 24 x M
+        out = mid.view((mid.size()[0], -1))  # N x (ch x 24)
+        return out

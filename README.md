@@ -13,9 +13,11 @@ pip install -r requirements.txt
 
 In addition, `ffmpeg` is required.
 
+Note, the model expects video at 25 fps and audio at 16kHz
+
 
 ## Demo
-
+The demos expect cropped videos from the run_pipeline step below.
 SyncNet demo:
 ```
 python demo_syncnet.py --videofile data/example.avi --tmp_dir /path/to/temp/directory
@@ -28,7 +30,22 @@ Min dist:       5.353
 Confidence:     10.021
 ```
 
-Full pipeline:
+## Feature Extraction
+This also expects that the videos are cropped with the pipeline.
+```
+python demo_feature.py --videofile data/example.avi --tmp_dir /path/to/save/features
+```
+
+
+## Pipeline
+
+The pipeline consists of three steps:
+1. run_pipeline: extracts video of individual faces into seperate videos
+2. run_syncnet: calls the syncnet model on the video streams, gathering features and confidence values
+3. run_visualize: combines the detected faces with the confidence in the original video
+
+
+Full pipeline (these steps are sequential):
 ```
 sh download_model.sh
 python run_pipeline.py --videofile /path/to/video.mp4 --reference name_of_video --data_dir /path/to/output
@@ -38,8 +55,8 @@ python run_visualise.py --videofile /path/to/video.mp4 --reference name_of_video
 
 Outputs:
 ```
-$DATA_DIR/pycrop/$REFERENCE/*.avi - cropped face tracks
-$DATA_DIR/pywork/$REFERENCE/offsets.txt - audio-video offset values
+$DATA_DIR/pycrop/$REFERENCE/*.avi - cropped face tracks from run_pipeline
+$DATA_DIR/pywork/$REFERENCE/offsets.txt - audio-video offset values from run_syncnet (Not currently written???)
 $DATA_DIR/pyavi/$REFERENCE/video_out.avi - output video (as shown below)
 ```
 <p align="center">

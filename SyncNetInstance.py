@@ -179,7 +179,7 @@ class SyncNetInstance(torch.nn.Module):
         dists_npy = numpy.array([dist.numpy() for dist in dists])
         return offset.numpy(), conf.numpy(), dists_npy
 
-    def extract_feature(self, opt, videofile):
+    def extract_im_feature(self, opt, videofile):
 
         self.__S__.eval()
 
@@ -231,6 +231,107 @@ class SyncNetInstance(torch.nn.Module):
         print("Compute time %.3f sec." % (time.time() - tS))
 
         return im_feat
+
+    def extract_features(self, opt, videofile):
+        self.__S__.eval()
+
+        # ========== ==========
+        # Convert files
+        # ========== ==========
+
+        if os.path.exists(os.path.join(opt.tmp_dir, opt.reference)):
+            rmtree(os.path.join(opt.tmp_dir, opt.reference))
+
+        os.makedirs(os.path.join(opt.tmp_dir, opt.reference))
+
+        command = "ffmpeg -y -i %s -threads 1 -f image2 %s" % (
+            videofile,
+            os.path.join(opt.tmp_dir, opt.reference, "%06d.jpg"),
+        )
+        output = subprocess.call(command, shell=True, stdout=None)
+
+        command = (
+            "ffmpeg -y -i %s -async 1 -ac 1 -vn -acodec pcm_s16le -ar 16000 %s"
+            % (videofile, os.path.join(opt.tmp_dir, opt.reference, "audio.wav"))
+        )
+        output = subprocess.call(command, shell=True, stdout=None)
+
+        # ========== ==========
+        # Load video
+        # ========== ==========
+
+        images = []
+
+        flist = glob.glob(os.path.join(opt.tmp_dir, opt.reference, "*.jpg"))
+        flist.sort()
+
+        for fname in flist:
+            images.append(cv2.imread(fname))
+
+        im = numpy.stack(images, axis=3)
+        im = numpy.expand_dims(im, axis=0)
+        im = numpy.transpose(im, (0, 3, 4, 1, 2))
+
+        imtv = torch.autograd.Variable(torch.from_numpy(im.astype(float)).float())
+
+        # ========== ==========
+        # Load audio
+        # ========== ==========
+
+        sample_rate, audio = wavfile.read(
+            os.path.join(opt.tmp_dir, opt.reference, "audio.wav")
+        )
+        mfcc = zip(*python_speech_features.mfcc(audio, sample_rate))
+        mfcc = numpy.stack([numpy.array(i) for i in mfcc])
+
+        cc = numpy.expand_dims(numpy.expand_dims(mfcc, axis=0), axis=0)
+        cct = torch.autograd.Variable(torch.from_numpy(cc.astype(float)).float())
+
+        # ========== ==========
+        # Check audio and video input length
+        # ========== ==========
+
+        if (float(len(audio)) / 16000) != (float(len(images)) / 25):
+            print(
+                "WARNING: Audio (%.4fs) and video (%.4fs) lengths are different."
+                % (float(len(audio)) / 16000, float(len(images)) / 25)
+            )
+
+        min_length = min(len(images), math.floor(len(audio) / 640))
+
+        # ========== ==========
+        # Generate video and audio feats
+        # ========== ==========
+
+        lastframe = min_length - 5
+        im_feat = []
+        cc_feat = []
+
+        tS = time.time()
+        for i in range(0, lastframe, opt.batch_size):
+
+            im_batch = [
+                imtv[:, :, vframe : vframe + 5, :, :]
+                for vframe in range(i, min(lastframe, i + opt.batch_size))
+            ]
+            cc_batch = [
+                cct[:, :, :, vframe * 4 : vframe * 4 + 20]
+                for vframe in range(i, min(lastframe, i + opt.batch_size))
+            ]
+
+            im_in = torch.cat(im_batch, 0)
+            cc_in = torch.cat(cc_batch, 0)
+
+            im_out = self.__S__.forward_lipfeat(im_in.cuda())
+            im_feat.append(im_out.data.cpu())
+
+            cc_out = self.__S__.forward_audfeat(cc_in.cuda())
+            cc_feat.append(cc_out.data.cpu())
+
+        im_feat = torch.cat(im_feat, 0)
+        cc_feat = torch.cat(cc_feat, 0)
+
+        return im_feat, cc_feat
 
     def loadParameters(self, path):
         loaded_state = torch.load(path, map_location=lambda storage, loc: storage)
