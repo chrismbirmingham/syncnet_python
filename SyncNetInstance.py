@@ -18,6 +18,9 @@ from scipy import signal
 from scipy.io import wavfile
 from SyncNetModel import *
 from shutil import rmtree
+from data_loader import SingleVideoDataset
+from tqdm import tqdm
+from torch.utils.data import Dataset, DataLoader
 
 
 # ==================== Get OFFSET ====================
@@ -50,6 +53,56 @@ class SyncNetInstance(torch.nn.Module):
         super(SyncNetInstance, self).__init__()
 
         self.__S__ = S(num_layers_in_fc_layers=num_layers_in_fc_layers).cuda()
+
+    def evaluate_from_DL(self, opt, videofile):
+        self.__S__.eval()
+
+        svd = SingleVideoDataset(videofile, opt.tmp_dir, opt.reference, opt.batch_size)
+        dataloader = DataLoader(svd, batch_size=20, shuffle=False, num_workers=0)
+        im_feat = []
+        cc_feat = []
+
+        # for i in tqdm(range(len(svd))):
+        #     v, a = svd[i]
+        for v, a in tqdm(dataloader):
+            v = torch.squeeze(v, dim=1)
+            a = torch.squeeze(a, dim=1)
+            im_out = self.__S__.forward_lip(v.cuda())
+            im_feat.append(im_out.data.cpu())
+
+            cc_out = self.__S__.forward_aud(a.cuda())
+            cc_feat.append(cc_out.data.cpu())
+
+        im_feat = torch.cat(im_feat, 0)
+        cc_feat = torch.cat(cc_feat, 0)
+
+        # ========== ==========
+        # Compute offset
+        # ========== ==========
+
+        dists = calc_pdist(im_feat, cc_feat, vshift=opt.vshift)
+        mdist = torch.mean(torch.stack(dists, 1), 1)
+
+        minval, minidx = torch.min(mdist, 0)
+
+        offset = opt.vshift - minidx
+        conf = torch.median(mdist) - minval
+
+        fdist = numpy.stack([dist[minidx].numpy() for dist in dists])
+        # fdist   = numpy.pad(fdist, (3,3), 'constant', constant_values=15)
+        fconf = torch.median(mdist).numpy() - fdist
+        fconfm = signal.medfilt(fconf, kernel_size=9)
+
+        numpy.set_printoptions(formatter={"float": "{: 0.3f}".format})
+        print("Framewise conf: ")
+        print(fconfm)
+        print(
+            "AV offset: \t%d \nMin dist: \t%.3f\nConfidence: \t%.3f"
+            % (offset, minval, conf)
+        )
+
+        dists_npy = numpy.array([dist.numpy() for dist in dists])
+        return offset.numpy(), conf.numpy(), dists_npy
 
     def evaluate(self, opt, videofile):
 

@@ -45,7 +45,8 @@ flist.sort()
 
 dists = []
 for idx, fname in enumerate(flist):
-    offset, conf, dist = s.evaluate(opt, videofile=fname)
+    # offset, conf, dist = s.evaluate(opt, videofile=fname)
+    offset, conf, dist = s.evaluate_from_DL(opt, videofile=fname)
     dists.append(dist)
 
 # ==================== PRINT RESULTS TO FILE ====================
