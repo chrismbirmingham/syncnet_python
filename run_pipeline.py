@@ -59,6 +59,7 @@ setattr(opt, "tmp_dir", os.path.join(opt.data_dir, "pytmp"))
 setattr(opt, "work_dir", os.path.join(opt.data_dir, "pywork"))
 setattr(opt, "crop_dir", os.path.join(opt.data_dir, "pycrop"))
 setattr(opt, "frames_dir", os.path.join(opt.data_dir, "pyframes"))
+setattr(opt, "feat_dir", os.path.join(opt.data_dir, "pyfeat"))
 
 # ========== ========== ========== ==========
 # # IOU FUNCTION
@@ -343,6 +344,9 @@ if os.path.exists(os.path.join(opt.frames_dir, opt.reference)):
 if os.path.exists(os.path.join(opt.tmp_dir, opt.reference)):
     rmtree(os.path.join(opt.tmp_dir, opt.reference))
 
+if os.path.exists(os.path.join(opt.feat_dir, opt.reference)):
+    rmtree(os.path.join(opt.feat_dir, opt.reference))
+
 # ========== MAKE NEW DIRECTORIES ==========
 
 os.makedirs(os.path.join(opt.work_dir, opt.reference))
@@ -350,6 +354,7 @@ os.makedirs(os.path.join(opt.crop_dir, opt.reference))
 os.makedirs(os.path.join(opt.avi_dir, opt.reference))
 os.makedirs(os.path.join(opt.frames_dir, opt.reference))
 os.makedirs(os.path.join(opt.tmp_dir, opt.reference))
+os.makedirs(os.path.join(opt.feat_dir, opt.reference))
 
 # ========== CONVERT VIDEO AND EXTRACT FRAMES ==========
 

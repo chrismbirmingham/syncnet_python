@@ -26,6 +26,7 @@ parser.add_argument("--feat_type", type=str, default="both", help="both or lip")
 
 opt = parser.parse_args()
 
+setattr(opt, "feat_dir", os.path.join(opt.data_dir, "pyfeat"))
 
 # ==================== RUN EVALUATION ====================
 
@@ -39,5 +40,5 @@ if opt.feat_type == "lip":
     torch.save(feats, opt.save_as)
 if opt.feat_type == "both":
     im_feat, cc_feat = s.extract_im_feature(opt, videofile=opt.videofile)
-    torch.save(im_feat, opt.tmp_dir + "/im_feats.pt")
-    torch.save(cc_feat, opt.save_as + "/aud_feats.pt")
+    torch.save(im_feat, os.path.join(opt.feat_dir, opt.reference, "vid_feats.pt"))
+    torch.save(cc_feat, os.path.join(opt.feat_dir, opt.reference, "aud_feats.pt"))

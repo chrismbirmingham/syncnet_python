@@ -9,6 +9,7 @@ import pickle
 import os
 import gzip
 import glob
+import pandas as pd
 
 from SyncNetInstance import *
 
@@ -23,12 +24,15 @@ parser.add_argument("--vshift", type=int, default="15", help="")
 parser.add_argument("--data_dir", type=str, default="data/work", help="")
 parser.add_argument("--videofile", type=str, default="", help="")
 parser.add_argument("--reference", type=str, default="", help="")
+parser.add_argument("--save_feats", type=bool, default=True, help="Save extracted features")
+
 opt = parser.parse_args()
 
 setattr(opt, "avi_dir", os.path.join(opt.data_dir, "pyavi"))
 setattr(opt, "tmp_dir", os.path.join(opt.data_dir, "pytmp"))
 setattr(opt, "work_dir", os.path.join(opt.data_dir, "pywork"))
 setattr(opt, "crop_dir", os.path.join(opt.data_dir, "pycrop"))
+setattr(opt, "feat_dir", os.path.join(opt.data_dir, "pyfeat"))
 
 
 # ==================== LOAD MODEL AND FILE LIST ====================

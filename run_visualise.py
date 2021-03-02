@@ -8,6 +8,7 @@ import pickle
 import os
 import glob
 import cv2
+from tqdm import tqdm
 
 from scipy import signal
 
@@ -42,7 +43,7 @@ flist.sort()
 faces = [[] for i in range(len(flist))]
 
 for tidx, track in enumerate(tracks):
-
+    print(f"track {tidx}")
     mean_dists = numpy.mean(numpy.stack(dists[tidx], 1), 1)
     minidx = numpy.argmin(mean_dists, 0)
     minval = mean_dists[minidx]
@@ -53,7 +54,7 @@ for tidx, track in enumerate(tracks):
     fconf = numpy.median(mean_dists) - fdist
     fconfm = signal.medfilt(fconf, kernel_size=9)
 
-    for fidx, frame in enumerate(track["track"]["frame"].tolist()):
+    for fidx, frame in enumerate(tqdm(track["track"]["frame"].tolist())):
         faces[frame].append(
             {
                 "track": tidx,
@@ -78,11 +79,11 @@ vOut = cv2.VideoWriter(
     opt.frame_rate,
     (fw, fh),
 )
-
-for fidx, fname in enumerate(flist):
+confidences = []
+for fidx, fname in enumerate(tqdm(flist)):
 
     image = cv2.imread(fname)
-
+    conf = 0
     for face in faces[fidx]:
 
         clr = max(min(face["conf"] * 25, 255), 0)
@@ -103,12 +104,20 @@ for fidx, fname in enumerate(flist):
             (255, 255, 255),
             2,
         )
+        conf = face["conf"]
+    confidences.append(conf)
 
     vOut.write(image)
 
-    print("Frame %d" % fidx)
+    # print("Frame %d" % fidx)
 
 vOut.release()
+
+df = pd.DataFrame(confidences, columns=["Confidence"])
+df.to_csv(
+        os.path.join(opt.avi_dir, opt.reference,"framewise_confidences.csv"),
+        index=False,
+    )
 
 # ========== COMBINE AUDIO AND VIDEO FILES ==========
 

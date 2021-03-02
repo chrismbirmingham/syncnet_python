@@ -76,6 +76,10 @@ class SyncNetInstance(torch.nn.Module):
         im_feat = torch.cat(im_feat, 0)
         cc_feat = torch.cat(cc_feat, 0)
 
+        if opt.save_feats:
+            torch.save(im_feat, os.path.join(opt.feat_dir, opt.reference, "vid_feats.pt"))
+            torch.save(cc_feat, os.path.join(opt.feat_dir, opt.reference, "aud_feats.pt"))
+
         # ========== ==========
         # Compute offset
         # ========== ==========
@@ -100,9 +104,15 @@ class SyncNetInstance(torch.nn.Module):
             "AV offset: \t%d \nMin dist: \t%.3f\nConfidence: \t%.3f"
             % (offset, minval, conf)
         )
+        with open(os.path.join(opt.avi_dir, opt.reference,'results.txt'), 'w') as f:
+            print(
+            "AV offset: \t%d \nMin dist: \t%.3f\nConfidence: \t%.3f"
+            % (offset, minval, conf), 
+            file=f
+            )
 
         dists_npy = numpy.array([dist.numpy() for dist in dists])
-        return offset.numpy(), conf.numpy(), dists_npy
+        return offset.numpy(), fconfm, dists_npy
 
     def evaluate(self, opt, videofile):
 
