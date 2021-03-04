@@ -56,16 +56,19 @@ for tidx, track in enumerate(tracks):
     fconfm = signal.medfilt(fconf, kernel_size=9)
 
     for fidx, frame in enumerate(tqdm(track["track"]["frame"].tolist())):
-        faces[frame].append(
-            {
-                "track": tidx,
-                "conf": fconfm[fidx],
-                "s": track["proc_track"]["s"][fidx],
-                "x": track["proc_track"]["x"][fidx],
-                "y": track["proc_track"]["y"][fidx],
-            }
-        )
-
+        try:
+            faces[frame].append(
+                {
+                    "track": tidx,
+                    "conf": fconfm[fidx],
+                    "s": track["proc_track"]["s"][fidx],
+                    "x": track["proc_track"]["x"][fidx],
+                    "y": track["proc_track"]["y"][fidx],
+                }
+            )
+        except IndexError as e:
+            # sometimes the index runs one over the confidence
+            print(e)
 # ==================== ADD DETECTIONS TO VIDEO ====================
 
 first_image = cv2.imread(flist[0])
