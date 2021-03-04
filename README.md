@@ -56,8 +56,10 @@ python run_visualise.py --videofile /path/to/video.mp4 --reference name_of_video
 Key Outputs:
 ```
 $DATA_DIR/pycrop/$REFERENCE/*.avi - cropped face tracks from run_pipeline
-$DATA_DIR/pywork/$REFERENCE/offsets.txt - audio-video offset values from run_syncnet (Not currently written???)
+$DATA_DIR/pywork/$REFERENCE/offsets.txt - audio-video offset values from run_syncnet (From original readme - Not currently written???)
 $DATA_DIR/pyavi/$REFERENCE/video_out.avi - output video (as shown below)
+$DATA_DIR/pyavi/$REFERENCE/framewise_confidences.csv - output per confidence frames (**assumes only person in frame**)
+$DATA_DIR/pyavi/$REFERENCE/results.txt
 ```
 
 All Outputs:
@@ -68,6 +70,8 @@ data_dir/
   - video_only.avi (Video without audio)
   - audio.wav (audio resampled to 16k SR)
   - video_out.avi (output visualization)
+  - framewise_confidences.csv
+  - results.txt
 
 - pycrop/ref/
   -000#.avi (224x224 crop around each face-scene detected)
